@@ -1,5 +1,5 @@
 // heavy_light_lazy.cpp : Defines the entry point for the console application.
-//
+//Heavy-Light decomposition along with lazy propagation 
 
 //#include "stdafx.h"
 #include <iostream>
