@@ -1,0 +1,469 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <stack>
+
+typedef long long ll;
+using namespace std;
+
+#define fi first
+#define se second
+#define M 1000000007
+#define inv_2 500000004
+
+int N,E,R;
+
+struct node{
+	bool v;
+	vector<int>adj;
+	int par = -1;
+	int dep = -1;
+	int d;
+	int f;
+	
+	int s_ind = -1;//spl. child index in the adj.list
+	int c_no = -1;//chain no.
+	int c_pos = -1;//posn in the chain
+	int c_h = 0;//head node in the chain
+};
+
+vector<node>G;
+vector<int>Z;
+
+int Ti = -1;
+int DFS_visit(int i)
+{
+	Ti++;
+	G[i].v = true;
+	G[i].d = Ti;
+	Z.push_back(i);
+	
+	int ret = 1;
+	int siz = 0;
+	for(int k=0;k<G[i].adj.size();k++)
+	{
+		if(!G[G[i].adj[k]].v)
+		{
+			G[G[i].adj[k]].dep = G[i].dep + 1;
+			int temp = DFS_visit(G[i].adj[k]);
+			Ti++;
+			Z.push_back(i);
+			
+			ret +=temp;
+			G[G[i].adj[k]].par = i;
+			if(temp>siz)
+			{
+				G[i].s_ind = k;
+				siz = temp;
+			}
+		}
+	}
+	G[i].f = Ti;
+	return ret;	
+}
+
+vector<vector<int>>dum;
+int cc = 0;
+int siz = 0;
+void hld_visit(int i)
+{
+	G[i].c_no = cc;
+	G[i].v = true;
+	if(dum.size()==cc)
+	{
+		dum.emplace_back();
+		G[i].c_h = i;
+	}
+	G[i].c_pos = dum[cc].size();
+	dum[cc].push_back(i);
+	
+	if(G[i].s_ind!=-1)
+	{
+		G[G[i].adj[G[i].s_ind]].c_h = G[i].c_h;
+		hld_visit(G[i].adj[G[i].s_ind]);
+	}
+	for(int z:G[i].adj)
+	{
+		if(!G[z].v)
+		{
+			cc++;
+			hld_visit(z);
+		}
+	}	
+}
+
+struct seg_node {
+	int L;
+	int R;
+	int left;
+	int right;
+	int par = -1;
+	ll rval = 0;//range-value
+	int ind;//index at which rval occurs in the range
+
+	seg_node(int l, int r) :L(l), R(r) {}
+};
+
+struct seg_tree_dep{
+	
+	vector<seg_node>T;
+	int N;
+	seg_tree_dep(vector<int>&A) :N(A.size())
+	{
+		int siz = 0;
+		queue<int>Q;
+		T.emplace_back(0, N - 1);
+		Q.push(0);
+		while (!Q.empty())
+		{
+			int c = Q.front();
+			Q.pop();
+			int l = T[c].L;
+			int r = T[c].R;
+
+			if (l == r)
+			{
+				T[c].ind = l;
+				T[c].rval = A[l];
+			}
+			else
+			{
+				T.emplace_back(l, (l + r) / 2);
+				siz++;
+				T[c].left = siz;
+				T[siz].par = c;
+				Q.push(siz);
+
+				T.emplace_back(((l + r) / 2) + 1, r);
+				siz++;
+				T[c].right = siz;
+				T[siz].par = c;
+				Q.push(siz);
+			}
+		}
+
+		for (int i = siz; i >= 0; i--)
+		{
+			if (T[i].L != T[i].R)
+
+			{
+				T[i].rval = (T[T[i].left].rval<T[T[i].right].rval) ? (T[T[i].left].rval) : (T[T[i].right].rval);
+
+				T[i].ind = (T[T[i].left].rval<T[T[i].right].rval) ? (T[T[i].left].ind) : (T[T[i].right].ind);
+			}
+		}
+	}
+	
+	pair<ll,int> get_min(int c,int l,int r)
+	{
+		pair<ll,int>ret;
+		if(l<=T[c].L && T[c].R <=r)
+			ret = make_pair(T[c].rval,T[c].ind);
+		
+		else if(T[c].L <=r && l<=T[c].R)
+		{
+			pair<ll,int>p1 = get_min(T[c].left,l,r);
+			pair<ll,int>p2 = get_min(T[c].right,l,r);
+			if(p1.se == -1)
+				ret = p2;
+			else if(p2.se == -1)
+				ret = p1;
+			else
+			{
+				if(p1.fi<p2.fi)
+					ret = p1;
+				else
+					ret = p2;
+			}
+		}
+		else
+			ret = make_pair(0,-1);
+			
+		return ret;
+	}
+};
+
+struct seg_tree_add{
+	
+	struct seg_node_add:seg_node{
+		ll a = 0;
+		ll d = 0;
+		seg_node_add(int l,int r):seg_node(l,r){}
+	};
+	
+	int N;
+	vector<seg_node_add>T;//ind field will be irrelevant
+	
+	seg_tree_add(int n):N(n)
+	{
+		int siz = 0;
+		queue<int>Q;
+		T.emplace_back(0, N - 1);
+		Q.push(0);
+		while (!Q.empty())
+		{
+			int c = Q.front();
+			Q.pop();
+			int l = T[c].L;
+			int r = T[c].R;
+			if(l!=r)
+			{
+				T.emplace_back(l, (l + r) / 2);
+				siz++;
+				T[c].left = siz;
+				T[siz].par = c;
+				Q.push(siz);
+
+				T.emplace_back(((l + r) / 2) + 1, r);
+				siz++;
+				T[c].right = siz;
+				T[siz].par = c;
+				Q.push(siz);
+			}
+		}
+	}
+	
+
+	void ran_upd(int c,int l,int r,ll a_del,ll d_del)
+	{
+		if(l<=T[c].L && T[c].R<=r)
+		{
+			T[c].a = T[c].a + a_del + ((T[c].L-l)*d_del)%M;
+			T[c].a = (T[c].a)%M;
+			T[c].d = (T[c].d + d_del)%M;
+		}
+		
+		int le = T[c].left;
+		int ri = T[c].right;
+		
+		if(T[c].L!=T[c].R)
+		{
+			int len = (T[c].R - T[c].L) +1;
+			ll t = (len*(2 * T[c].a + (((len - 1)*T[c].d)%M)));
+			t = t%M;
+			t = (t*inv_2)%M;
+			T[c].rval = (T[c].rval + t)%M;
+			
+			T[le].a = (T[le].a+T[c].a)%M;
+			T[le].d = (T[le].d + T[c].d)%M;
+			
+			T[ri].a = (T[ri].a + T[c].a+((T[ri].L-T[c].L)*T[c].d)%M)%M;
+			T[ri].d = (T[ri].d +T[c].d)%M;
+			
+			T[c].a = 0;
+			T[c].d = 0;
+		}
+		
+		if ((r>=l) && !(l <= T[c].L && T[c].R <= r))
+		{
+			if (l <= T[c].R && T[c].L <= r)
+			{
+				ran_upd(le, l, r, a_del, d_del);
+				ran_upd(ri, l, r, a_del,d_del);
+
+				T[c].rval = (T[le].rval + T[le].a + T[ri].rval + T[ri].a) % M;
+			}
+		}
+		return;
+	}
+	
+	ll ran_val(int c,int l,int r)
+	{
+		ll ret = 0;
+		int le = T[c].left;
+		int ri = T[c].right;
+		
+		if (T[c].L != T[c].R)
+		{
+			int len = (T[c].R - T[c].L) +1;
+			ll t = (len*(2 * T[c].a + (((len - 1)*T[c].d)%M)));
+			t = t%M;
+			t = (t*inv_2)%M;
+			T[c].rval = (T[c].rval + t) % M;
+			T[le].a = (T[le].a + T[c].a) % M;
+			T[le].d = (T[le].d + T[c].d) % M;
+			
+			T[ri].a = (T[ri].a + T[c].a+ ((T[ri].L-T[c].L)*T[c].d)%M)%M;
+			T[ri].d = (T[ri].d + T[c].d) % M;
+			T[c].a = 0;
+			T[c].d = 0;
+		}
+		
+		if(r<l)
+			ret = 0;
+		
+		else if(l <= T[c].L && T[c].R <= r)
+			ret = (T[c].rval + T[c].a)%M; //T[c].a will be 0 in all cases except for the case when c is leaf, then T[c].rval = 0 and T[c].a will have the sum
+			
+		else if (T[c].L <= r && l <= T[c].R)
+			ret = (ran_val(le, l, r) + ran_val(ri, l, r)) % M;
+			
+		return ret;
+	}
+	
+	pair<ll,ll> get_a_d(int x)//get effective a and d at x that would also have effect on children
+	{
+		int c = 0;
+		
+		while(T[c].L != T[c].R)
+		{
+			int le = T[c].left;
+			int ri = T[c].right;
+			int len = (T[c].R - T[c].L) +1;
+			ll t = (len*(2 * T[c].a + (((len - 1)*T[c].d)%M)));
+			t = t%M;
+			t = (t*inv_2)%M;
+			T[c].rval = (T[c].rval + t) % M;
+			T[le].a = (T[le].a + T[c].a) % M;
+			T[le].d = (T[le].d + T[c].d) % M;
+			
+			T[ri].a = (T[ri].a + T[c].a+ ((T[ri].L-T[c].L)*T[c].d)%M)%M;
+			T[ri].d = (T[ri].d + T[c].d) % M;	
+			T[c].a = 0;
+			T[c].d = 0;
+			if(x<=T[le].R)
+				c = le;
+			else
+				c = ri;
+		}
+		return make_pair(T[c].a,T[c].d);
+	}
+	
+};
+
+int LCA(int u, int v, seg_tree_dep &lc)//Lowest common ancestor O(log(n)) method
+
+{
+	pair<ll, int>p;
+	int Lca = -1;
+	if ((G[u].d <= G[v].d) && (G[v].f <= G[u].f))
+		Lca = u;
+
+	else if ((G[v].d < G[u].d) && (G[u].f < G[v].f))
+		Lca = v;
+
+	else
+	{
+		if (G[u].f<G[v].d)
+			p = lc.get_min(0, G[u].f, G[v].d);
+
+		else
+			p = lc.get_min(0, G[v].f, G[u].d);
+
+		Lca = Z[p.se];//p.se never <0 for valid range
+	}
+	return Lca;
+}
+
+vector<seg_tree_add>seg_hld;
+
+ll sum_2_root(int i)
+{
+	if(i==-1)
+		return 0;
+		
+	stack<int>S;
+	int j = i;
+	while(G[j].c_no != G[R].c_no)
+	{
+		S.push(j);
+		j = G[G[j].c_h].par;
+	}
+	S.push(j);
+	
+	j = S.top();
+	ll a_c = 0;
+	ll d_c = 0;
+	ll t;
+	
+	ll sum = 0;
+	int len;
+	while(j!=i)
+	{
+		S.pop();
+		sum = sum + seg_hld[G[j].c_no].ran_val(0,0,G[j].c_pos);
+		sum = sum%M;
+		len = G[j].c_pos+1;
+		t = len*(2*a_c + (((len-1)*d_c)%M));
+		t = t%M;
+		t = (t*inv_2)%M;
+		sum = (sum+t)%M;
+		pair<ll,ll>p = seg_hld[G[j].c_no].get_a_d(G[j].c_pos);
+		a_c = (a_c + p.fi + ((d_c*(len-1))%M))%M;
+		d_c = (d_c + p.se)%M;
+		a_c = (a_c + d_c)%M;
+		j = S.top();
+	}
+	sum = sum + seg_hld[G[j].c_no].ran_val(0,0,G[j].c_pos);
+	sum = sum%M;
+	len = G[j].c_pos+1;
+	t = len*(2*a_c + (((len-1)*d_c)%M));
+	t = t%M;
+	t = (t*inv_2)%M;
+	sum = (sum+t)%M;
+	
+	return sum;
+}
+
+int main()
+{
+	vector<ll>ans;
+	cin>>N>>E>>R;
+	R--;
+	G.resize(N);
+	for(int i=0;i<N-1;i++)
+	{
+		int u,v;
+		cin>>u>>v;
+		u--;
+		v--;
+		G[u].adj.push_back(v);
+		G[v].adj.push_back(u);
+	}
+	
+	G[R].dep = 0;
+	
+	DFS_visit(R);
+	
+	vector<int>dep;
+	for(int z:Z)
+		dep.push_back(G[z].dep);
+	seg_tree_dep LC(dep);
+	
+	for(auto &z:G)
+		z.v = false;
+	
+	hld_visit(R);
+	for(auto &z:dum)
+		seg_hld.emplace_back(z.size());
+	
+	for(int i=0;i<E;i++)
+	{
+		char c;
+		cin>>c;
+		if(c == 'U')
+		{
+			int T,V,K;
+			cin>>T>>V>>K;
+			T--;
+			seg_hld[G[T].c_no].ran_upd(0,G[T].c_pos,seg_hld[G[T].c_no].N-1,V,K);
+		}
+		
+		else if(c == 'Q')
+		{
+			int A,B;
+			cin>>A>>B;
+			A--;
+			B--;
+			int lca = LCA(A,B,LC);
+			ll sum = sum_2_root(A)+sum_2_root(B)-sum_2_root(lca)-sum_2_root(G[lca].par);
+			sum = (sum + 2*M)%M;
+			ans.push_back(sum);
+		}
+	}
+	
+	for(ll z:ans)
+		cout<<z<<endl;
+	
+	return 0;	
+}
