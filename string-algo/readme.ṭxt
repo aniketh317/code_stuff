@@ -1,3 +1,4 @@
 Has files for string manipulation and string search
 
 Aho-Corasik - For multiple pattern matching
+Ukkonen Suffix tree - For creating suffix trees from a string in linear time
