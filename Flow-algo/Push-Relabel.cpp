@@ -16,6 +16,14 @@ struct res_adj {
 	int Cf;//residual capacity of the edge
 	res_adj() {}
 	res_adj(int i, int c) :ind(i), Cf(c) {}
+	
+	res_adj & operator=(const res_adj &rhs)
+	{
+		ind = rhs.ind;
+		Cf = rhs.Cf;
+		return *this;
+	}
+	
 };
 
 struct res_node {
@@ -71,7 +79,7 @@ int max_flow(vector<vector<int>>C, int source, int sink, vector<vector<int>>F)
 	int n = C.size();//number of vertices
 
 	vector<vector<int>>h(2 * n - 1);/*Stores vertices with positive excess(based on their heights)
-									maximum possible height is 2*n-1*/
+									maximum possible height is 2*n-1 */
 
 	residual_graph RG(C, source, sink);//Residual graph of size n
 	for (int i = 0; i < n; i++)
@@ -90,7 +98,8 @@ int max_flow(vector<vector<int>>C, int source, int sink, vector<vector<int>>F)
 		F[source][j] += cf;
 		RG.V[j].exc += cf;
 		RG.V[j].H[n].emplace_back(source, cf);
-		num_exc++;
+		if(j!=sink)
+			num_exc++;
 	}
 
 	int max_exc_h = 0;//maximum height among heights of vertices with +ve excess
@@ -103,8 +112,7 @@ int max_flow(vector<vector<int>>C, int source, int sink, vector<vector<int>>F)
 		if (RG.V[u].H[dh].size() != 0)
 		{
 			/*PUSH along an edge which has terminating node at height dh*/
-			
-			int h = max_exc_h;//height of the current vertex
+			int cu_h = max_exc_h;//height of the current vertex
 			res_adj &r = RG.V[u].H[dh].back();
 			int d = min(r.Cf, RG.V[u].exc);
 			
@@ -117,17 +125,71 @@ int max_flow(vector<vector<int>>C, int source, int sink, vector<vector<int>>F)
 
 			RG.V[u].exc -= d;
 			RG.V[r.ind].exc += d;
+			
+			if(RG.V[r.ind].exc == d && r.ind!=sink)
+			{
+				h[dh].push_back(r.ind);
+				num_exc++;
+			}
+			
+			if(RG.V[u].exc == 0)
+			{
+				h[cu_h].pop_back();
+				num_exc--;
+				if(h[cu_h].size() == 0)
+					max_exc_h--;
+			}
 
 			if (RG.V[r.ind].pos[u] == -1)
-				RG.V[r.ind].H[h].emplace_back(u, d);
+			{
+				RG.V[r.ind].H[cu_h].emplace_back(u, d);
+				RG.V[r.ind].pos[u] = RG.V[r.ind].H[cu_h].size()-1;
+			}
 			else
-				RG.V[r.ind].H[h][RG.V[r.ind].pos[u]].Cf += d;
+				RG.V[r.ind].H[cu_h][RG.V[r.ind].pos[u]].Cf += d;
 			
 			if (r.Cf == 0)
+			{
+				RG.V[u].pos[r.ind] = -1;
 				RG.V[u].H[dh].pop_back();
-			if(RG.V[)
+			}
+			
+		}
+		
+		else
+		{
+			/*RELABEL the node*/
+			max_exc_h++;
+			h[max_exc_h-1].pop_back();
+			h[max_exc_h].push_back(u);
+			
+			for(int i=0;i<n;i++)
+			{
+				if(RG.V[i].pos[u]!=-1)
+				{
+					res_adj &c = RG.V[i].H[max_exc_h-1][RG.V[i].pos[u]];
+					RG.V[i].H[max_exc_h].emplace_back(c.ind,c.Cf);
+					
+					c = RG.V[i].H[max_exc_h-1].back();
+					
+					RG.V[i].pos[c.ind] = RG.V[i].pos[u];
+					RG.V[i].H[max_exc_h-1].pop_back();
+					
+					RG.V[i].pos[u] = RG.V[i].H[max_exc_h].size()-1;
+					
+				}
+			}
+			
 		}
 	}
+	
+	
+	int flow_max = 0;
+	for(int v=0;v<n;v++)
+		flow_max += F[source][v];
+		
+	return flow_max;
+		
 }
 
 
