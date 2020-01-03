@@ -1,0 +1,10 @@
+Contains:
+
+Dinics Algo for Max-Flow - O((V^2)*E) run time
+    Significant improvement (esp. in case of dense flow-graphs) over Edmond-Karps which has O(V*(E^2)) runtime
+
+
+Push-Relabel for Max-Flow - O((V^3)) run time
+    A further improvement over Dinics(esp. in case of dense flow-graphs). There are implementations of Push-Relabel with O((V^2)*E) but 
+    the actual desired bound for Push-Relabel is O(V^3) and this implementation achieves the bound. Relabel step in this implementation 
+    takes O(V) time but since total number of Relabels is O(V^2), the total run time for Relabels is O(V^3)
