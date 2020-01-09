@@ -202,13 +202,14 @@ void Compute_path()
 
 void Print_path(vector<vector<int>>&OG)
 {
-	for(int i=0;i<ps.size()-1;i++)
+	for(int i=0;i<ps.size()-2;i++)
 	{
 		int cur = ps[i];
 		int nxt = ps[i+1];
 		int ov = OG[cur][nxt];//overlap with the next read
 		cout<<reads[cur].substr(0,s_len-ov);
 	}
+    cout<<"GCTT";
 }
 
 int main()
