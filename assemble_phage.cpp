@@ -1,7 +1,8 @@
 // Assemble_reads.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
+//#include "stdafx.h"
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -21,6 +22,48 @@ struct inci {
 	bool out_d = false;////set true when outward incidence is there
 };
 
+struct Union{
+	struct node{
+		int par;
+		int rank = 0;
+	};
+	
+	vector<node>DS;//Disjoint sets
+	int num;//Number of disjoint sets in the Union data structure
+	Union(int N):num(N)
+	{
+		DS.resize(N);
+		for(int i=0;i<N;i++)
+			DS[i].par = i;
+	}
+	
+	int Find(int i)//parent of the tree in the forest found
+	{
+		if(DS[i].par == i)
+			return i;
+		
+		DS[i].par = Find(DS[i].par);
+		return DS[i].par;
+	}
+	
+	void Merge(int i,int j)//Merge components containing node[i] and node[j]
+	{
+		int fi = Find(i);
+		int fj = Find(j);
+		if(fi != fj)
+		{
+			if(DS[fi].rank < DS[fj].rank)
+				swap(fi,fj);
+			
+			DS[fj].par = fi;
+			if(DS[fi].rank == DS[fj].rank)
+				DS[fi].rank++;
+			num--;
+		}
+	}
+};
+	
+
 struct edge {
 	edge() {}
 	edge(int u1, int v1, int w) :u(u1), v(v1), weight(w) {}
@@ -29,28 +72,29 @@ struct edge {
 	int v = 0;//terminal vertex of the edge
 	int weight = 0;
 
-	bool operator>=(const edge &rhs)
+	bool operator>=(const edge &rhs)const
 	{
 		return weight >= rhs.weight;
 	}
 
-	bool operator<=(const edge &rhs)
+	bool operator<=(const edge &rhs)const
 	{
 		return weight <= rhs.weight;
 	}
 
-	bool operator>(const edge &rhs)
+	bool operator>(const edge &rhs)const
 	{
 		return weight > rhs.weight;
 	}
 
-	bool operator<(const edge &rhs)
+	bool operator<(const edge &rhs)const
 	{
 		return weight < rhs.weight;
 	}
 };
 
 vector<edge>edg_sor;
+vector<int>ps;//path-sequence
 
 
 unsigned int Compute_Overlap(const string &s1, const string &s2)
@@ -107,54 +151,64 @@ void Sort_edges_weight(vector<vector<int>>&OG)
 	for (int i = 0; i < V_num; i++)
 	{
 		for (int j = 0; j < V_num; j++)
+		{
+			if(i!=j)
 			edg_sor.emplace_back(i, j, OG[i][j]);
+		}
 	}
 	sort(edg_sor.begin(), edg_sor.end());
 }
 
 void Compute_path()
 {
-	next_ver.resize(V_num);
+	next_ver.resize(V_num,-1);
 	int edges = 0;
 	vector<inci>flag(V_num);
-	for (int i = edg_sor.size() - 1; i >= 0 && edges < V_num - 1; i--)
+	
+	Union D(V_num);
+	
+	for (int i = edg_sor.size() - 1; i >= 0 && edges < V_num-1; i--)
 	{
-		if (!(flag[edg_sor[i].u].out_d) && !(flag[edg_sor[i].v].in_d) && !(flag[edg_sor[i].v].out_d && flag[edg_sor[i].u].in_d))
+		int u = edg_sor[i].u;
+		int v = edg_sor[i].v;
+		if (!(flag[u].out_d) && !(flag[v].in_d) && (next_ver[v]!=u) && (D.Find(u)!=D.Find(v)))
 		{
-			flag[edg_sor[i].u].out_d = true;
-			flag[edg_sor[i].v].in_d = true;
-			next_ver[edg_sor[i].u] = edg_sor[i].v;
+			flag[u].out_d = true;
+			flag[v].in_d = true;
+			next_ver[u] = v;
+			D.Merge(u,v);
 			edges++;
 		}
 	}
-	int u = -1;
-	int v = -1;
-	for (int i = 0; i < V_num; i++)
+	int start = 0;
+	for(int i=0;i<V_num;i++)
 	{
-		if (!flag[edg_sor[i].u].out_d)
-			u = edg_sor[i].u;
-
-		if (!flag[edg_sor[i].v].in_d)
-			v = edg_sor[i].v;
+		if(!flag[i].in_d)
+		{
+			start = i;
+			break;
+		}
 	}
-	next_ver[u] = v;
-	flag[u].out_d = true;
-	flag[v].in_d = true;
+	ps.push_back(start);
+	int next = next_ver[start];
+	
+	while(next != -1)
+	{
+		ps.push_back(next);
+		next = next_ver[next];
+	}	
+	ps.push_back(start);
 }
 
 void Print_path(vector<vector<int>>&OG)
 {
-	int len = V_num;
-	cout << reads[0];
-	int prev = 0;
-	for (unsigned int i = 1; i < len - 1; i++)
+	for(int i=0;i<ps.size()-1;i++)
 	{
-		cout << reads[next_ver[prev]].substr(OG[prev][next_ver[prev]]);
-		prev = next_ver[prev];
+		int cur = ps[i];
+		int nxt = ps[i+1];
+		int ov = OG[cur][nxt];//overlap with the next read
+		cout<<reads[cur].substr(0,s_len-ov);
 	}
-
-	if (len > 1)
-		cout << reads[next_ver[prev]].substr(OG[prev][next_ver[prev]], reads[next_ver[prev]].size() - OG[prev][next_ver[prev]] - OG[next_ver[prev]][0]);
 }
 
 int main()
@@ -230,4 +284,3 @@ int main()
 
     return 0;
 }
-
