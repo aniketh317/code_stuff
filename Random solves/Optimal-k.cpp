@@ -8,10 +8,16 @@
 #include <list>
 #include <algorithm>
 
+using namespace std;
+
 vector<string>reads;
 int V_num;
 int r_len;//length of reads
-using namespace std;
+
+struct cust{
+	bool in = false;
+	vector<int>ind;//vector of indices
+};
 
 void radix_sort(vector<string>&r, vector<int>&look, int k)
 {
@@ -49,7 +55,7 @@ void radix_sort(vector<string>&r, vector<int>&look, int k)
 		for (int i = look.size() - 1; i >= 0; i--)
 		{
 			int s = -1;
-			switch (r[i][rad])
+			switch (r[look[i]][rad])
 			{
 				case 'A':
 					s = 0;
@@ -88,6 +94,23 @@ bool is_cycle_present(int k)//k chosen for k-mers
 	for (int i = 0; i < k_s.size(); i++)
 		ref_k_s[i] = i;
 	radix_sort(k_s, ref_k_s, k - 1);
+	
+	vector<pair<string,int>>V;
+	V.push_back(make_pair(reads[ref_k_s[0]],1));
+	for(int i=1;i<ref_k_s.size();i++)
+	{
+		if(reads[ref_k_s[i]] == reads[ref_k_s[i-1]])
+			V.back().second++;
+		else
+			V.push_back(make_pair(reads[ref_k_s[i]],1));
+	}
+	
+	k_s.clear();
+	for(int i=0;i<V.size();i++)
+	{
+		
+	}
+	return true;
 }
 
 int main()
@@ -118,4 +141,3 @@ int main()
 	cout << mid << endl;
     return 0;
 }
-
