@@ -1,5 +1,8 @@
+// Tip detection.cpp : Defines the entry point for the console application.
+//
 
-//#include "stdafx.h"
+
+#include "stdafx.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -18,7 +21,7 @@ int k, t;//k-mers to be generated from reads, t-> bubble threshold
 
 struct node {
 	set<int>out;/*set of outgoing edge nodes*/
-	
+
 	set<int>in;//set of incoming edge nodes
 	bool rem = false;//true->vertex hasbeen removed
 };
@@ -156,16 +159,16 @@ void DeBruijn_Construct()
 
 
 	/*-----------Debruijn Graph construction started-------------*/
-	
+
 	G.resize(s + 1);
 
 	for (int i = 0; i < V.size(); i++)
 	{
 		G[cla_ss[i << 1]].out.insert(cla_ss[(i << 1) + 1]);
-		G[cla_ss[(i << 1)+1]].in.insert(cla_ss[i << 1]);
+		G[cla_ss[(i << 1) + 1]].in.insert(cla_ss[i << 1]);
 	}
 	/*-----------Debruijn Graph has been constructed-------------*/
-	
+
 	return;
 }
 
@@ -174,7 +177,7 @@ int main()
 	int num = 0;//number of edges remobed
 	k = 15;
 	string dum;
-			while (getline(cin, dum))
+	while (getline(cin, dum))
 	{
 		if (dum.size() != 0)
 			reads.push_back(dum);
@@ -183,34 +186,51 @@ int main()
 	}
 
 	V_num = reads.size();
-	
+
 	DeBruijn_Construct();
 	queue<int>Q;//vertices being removed which have deg_out = 0 or deg_in = 0
-	
-	for(int i=0;i<G.size();i++)
+
+	for (int i = 0; i<G.size(); i++)
 	{
-		if(G[i].in.size() == 0 || G[i].out.size() == 0)
+		if (G[i].in.size() == 0 || G[i].out.size() == 0)
 			Q.push(i);
 	}
-	
-	while(!Q.empty())
+
+	while (!Q.empty())
 	{
 		int c = Q.front();
 		Q.pop();
 		G[c].rem = true;
-		
-		if(G[c].out.size() == 0)
+
+		if (G[c].out.size() == 0)
 		{
-			for(int i=0;i<G.size();i++)
+			for (int i = 0; i<G.size(); i++)
 			{
-				if(!G[i].rem &&(G[i].out.find(c)!=G[i].out.end()))
+				if (!G[i].rem && (G[i].out.find(c) != G[i].out.end()))
 				{
 					G[i].out.erase(c);
 					num++;
-					if(G[i].out.size() ==0)
+					if (G[i].out.size() == 0)
+						Q.push(i);
+				}
+			}
+		}
+
+		else if (G[c].in.size() == 0)
+		{
+			for (int i = 0; i<G.size(); i++)
+			{
+				if (!G[i].rem && (G[i].in.find(c) != G[i].in.end()))
+				{
+					G[i].in.erase(c);
+					num++;
+					if (G[i].in.size() == 0)
 						Q.push(i);
 				}
 			}
 		}
 	}
+
+	cout << num << endl;
+	return 0;
 }
