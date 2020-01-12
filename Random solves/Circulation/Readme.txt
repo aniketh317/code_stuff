@@ -1,6 +1,6 @@
 Circulation:
 
-This code calculates if there is any flow possible in the network statisying the given constraints.There is no source or sink in this network.(But) In this network the edges are not only provided with an upper bound on the flow through an edge but also a lower bound on the flow through an edge thereby creating a necessity to send a non-zero flow through an edge. Since there is no source or sink in the network, such lowerbounds will create a necessity for circulation in the flow network 
+This code calculates if there is any flow possible in the network statisying the given constraints.There is no source or sink in this network.(But) In this network the edges are not only provided with an upper bound on the flow through an edge but also a lower bound on the flow through an edge thereby creating a necessity to send a non-zero flow through an edge(for statifyng constraints of the problem). Since there is no source or sink in the network, such lowerbounds will create a necessity for circulation in the flow network 
 
 Each edge e has constraints: l_e <= f_e <= c_e (f_e is flow through the network) --> 0 <= f_e' <= c_e-l_e ( where f_e' = f_e - l_e)
 1. This problem is reduced to a max flow problem by first adding source and sink to the network
